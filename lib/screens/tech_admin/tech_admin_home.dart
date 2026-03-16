@@ -4,6 +4,7 @@ import '../../widgets/app_sidebar.dart';
 import '../shared/create_announcement_screen.dart';
 import '../shared/recents_screen.dart';
 import '../shared/news_feed_screen.dart';
+import 'manage_units_screen.dart';
 
 class TechAdminHome extends StatefulWidget {
   const TechAdminHome({super.key});
