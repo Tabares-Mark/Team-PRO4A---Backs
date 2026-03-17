@@ -5,46 +5,90 @@ import 'package:firebase_core/firebase_core.dart';
 import '../../app_theme.dart';
 import '../../firebase_options.dart';
 
-class ManageUnitsScreen extends StatefulWidget {
-  final bool isReadOnly;                                          // ✅ ADDED
-  const ManageUnitsScreen({super.key, this.isReadOnly = false}); // ✅ ADDED
+class PersonnelEnrolmentScreen extends StatefulWidget {
+  final bool isReadOnly;
+  const PersonnelEnrolmentScreen({super.key, this.isReadOnly = false});
 
   @override
-  State<ManageUnitsScreen> createState() => _ManageUnitsScreenState();
+  State<PersonnelEnrolmentScreen> createState() =>
+      _PersonnelEnrolmentScreenState();
 }
 
-class _ManageUnitsScreenState extends State<ManageUnitsScreen> {
+class _PersonnelEnrolmentScreenState
+    extends State<PersonnelEnrolmentScreen> {
   final _firestore = FirebaseFirestore.instance;
   final _auth = FirebaseAuth.instance;
 
-  List<Map<String, dynamic>> _units = [];
+  List<Map<String, dynamic>> _personnel = [];
   bool _isLoading = true;
+  String? _unitDocId;
 
   @override
   void initState() {
     super.initState();
-    _loadUnits();
+    _init();
   }
 
-  Future<void> _loadUnits() async {
+  Future<void> _init() async {
+    final currentUser = _auth.currentUser;
+    if (currentUser == null) return;
+    if (!mounted) return;
+    setState(() => _unitDocId = currentUser.uid);
+
+    // ✅ Viewer Admin loads ALL personnel, Unit loads only their own
+    if (widget.isReadOnly) {
+      await _loadAllPersonnel();
+    } else {
+      await _loadPersonnel(currentUser.uid);
+    }
+  }
+
+  // ── Used by Unit role ──
+  Future<void> _loadPersonnel(String unitId) async {
     if (!mounted) return;
     setState(() => _isLoading = true);
     try {
       final snapshot = await _firestore
-          .collection('units')
+          .collection('users')
+          .where('role', isEqualTo: 'personnel')
+          .where('unitId', isEqualTo: unitId)
           .orderBy('createdAt', descending: true)
           .get();
       if (!mounted) return;
       setState(() {
-        _units = snapshot.docs
+        _personnel = snapshot.docs
             .map((doc) => {'id': doc.id, ...doc.data()})
             .toList();
       });
     } catch (e) {
       if (!mounted) return;
-      _showSnackbar('Error loading units: $e', isError: true);
+      _showSnackbar('Error loading personnel: $e', isError: true);
     } finally {
-      if (mounted) setState(() => _isLoading = false);  // ✅ finally block
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  // ── Used by Viewer Admin role ──      ✅ NEW
+  Future<void> _loadAllPersonnel() async {
+    if (!mounted) return;
+    setState(() => _isLoading = true);
+    try {
+      final snapshot = await _firestore
+          .collection('users')
+          .where('role', isEqualTo: 'personnel')
+          .orderBy('createdAt', descending: true)
+          .get();
+      if (!mounted) return;
+      setState(() {
+        _personnel = snapshot.docs
+            .map((doc) => {'id': doc.id, ...doc.data()})
+            .toList();
+      });
+    } catch (e) {
+      if (!mounted) return;
+      _showSnackbar('Error loading personnel: $e', isError: true);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -66,7 +110,7 @@ class _ManageUnitsScreenState extends State<ManageUnitsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Manage Units',
+                      'Personnel Enrolment',
                       style: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
@@ -74,19 +118,18 @@ class _ManageUnitsScreenState extends State<ManageUnitsScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${_units.length} unit${_units.length != 1 ? 's' : ''} registered',
+                      '${_personnel.length} personnel enrolled',
                       style: const TextStyle(color: Colors.grey),
                     ),
                   ],
                 ),
-                // ✅ hidden when read-only
                 if (!widget.isReadOnly)
                   ElevatedButton.icon(
-                    onPressed: () => _showAddUnitDialog(),
-                    icon: const Icon(Icons.add),
-                    label: const Text('Add Unit'),
+                    onPressed: () => _showAddPersonnelDialog(),
+                    icon: const Icon(Icons.person_add),
+                    label: const Text('Add Personnel'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primaryBlue,
+                      backgroundColor: Colors.green,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(
                           horizontal: 20, vertical: 14),
@@ -99,13 +142,13 @@ class _ManageUnitsScreenState extends State<ManageUnitsScreen> {
             ),
             const SizedBox(height: 24),
 
-            // ── UNITS LIST ──
+            // ── PERSONNEL LIST ──
             Expanded(
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
-                  : _units.isEmpty
+                  : _personnel.isEmpty
                       ? _buildEmptyState()
-                      : _buildUnitsList(),
+                      : _buildPersonnelList(),
             ),
           ],
         ),
@@ -118,11 +161,11 @@ class _ManageUnitsScreenState extends State<ManageUnitsScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.business_outlined,
+          Icon(Icons.people_outline,
               size: 64, color: Colors.grey.shade400),
           const SizedBox(height: 16),
           const Text(
-            'No units yet',
+            'No personnel enrolled yet',
             style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -131,8 +174,8 @@ class _ManageUnitsScreenState extends State<ManageUnitsScreen> {
           const SizedBox(height: 8),
           Text(
             widget.isReadOnly
-                ? 'No units have been registered yet.'
-                : 'Click "Add Unit" to create the first unit.',
+                ? 'No personnel have been enrolled yet.'
+                : 'Click "Add Personnel" to enrol your first member.',
             style: const TextStyle(color: Colors.grey),
           ),
         ],
@@ -140,13 +183,13 @@ class _ManageUnitsScreenState extends State<ManageUnitsScreen> {
     );
   }
 
-  Widget _buildUnitsList() {
+  Widget _buildPersonnelList() {
     return ListView.separated(
-      itemCount: _units.length,
+      itemCount: _personnel.length,
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
-        final unit = _units[index];
-        final isActive = unit['isActive'] == true;
+        final person = _personnel[index];
+        final isActive = person['isActive'] == true;
 
         return Card(
           elevation: 1,
@@ -160,23 +203,23 @@ class _ManageUnitsScreenState extends State<ManageUnitsScreen> {
             child: Row(
               children: [
 
-                // Unit Avatar
+                // Avatar
                 Container(
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: AppTheme.primaryBlue.withOpacity(0.1),
+                    color: Colors.green.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(22),
                   ),
                   child: const Icon(
-                    Icons.business,
-                    color: AppTheme.primaryBlue,
+                    Icons.person,
+                    color: Colors.green,
                     size: 22,
                   ),
                 ),
                 const SizedBox(width: 16),
 
-                // Unit Info
+                // Personnel Info
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -184,7 +227,7 @@ class _ManageUnitsScreenState extends State<ManageUnitsScreen> {
                       Row(
                         children: [
                           Text(
-                            unit['name'] ?? 'Unnamed Unit',
+                            person['name'] ?? 'Unnamed',
                             style: const TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
@@ -214,29 +257,38 @@ class _ManageUnitsScreenState extends State<ManageUnitsScreen> {
                         ],
                       ),
                       const SizedBox(height: 4),
+                      if ((person['position'] ?? '').isNotEmpty)
+                        Text(
+                          person['position'],
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: AppTheme.primaryBlue,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      const SizedBox(height: 2),
                       Text(
-                        unit['email'] ?? '',
+                        person['email'] ?? '',
                         style: const TextStyle(
                             fontSize: 13, color: Colors.grey),
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '${unit['personnelCount'] ?? 0} personnel',
-                        style: const TextStyle(
-                            fontSize: 12, color: Colors.grey),
-                      ),
+                      if ((person['phone'] ?? '').isNotEmpty)
+                        Text(
+                          person['phone'],
+                          style: const TextStyle(
+                              fontSize: 12, color: Colors.grey),
+                        ),
                     ],
                   ),
                 ),
 
-                // ✅ Actions hidden when read-only
                 if (!widget.isReadOnly)
                   PopupMenuButton<String>(
                     onSelected: (value) {
                       if (value == 'toggle') {
-                        _toggleUnitStatus(unit);
+                        _togglePersonnelStatus(person);
                       } else if (value == 'delete') {
-                        _confirmDelete(unit);
+                        _confirmDelete(person);
                       }
                     },
                     itemBuilder: (_) => [
@@ -282,19 +334,21 @@ class _ManageUnitsScreenState extends State<ManageUnitsScreen> {
     );
   }
 
-  // ── ADD UNIT DIALOG ──
-  void _showAddUnitDialog() {
+  // ── ADD PERSONNEL DIALOG ──
+  void _showAddPersonnelDialog() {
     final nameController = TextEditingController();
     final emailController = TextEditingController();
     final passwordController = TextEditingController();
+    final phoneController = TextEditingController();
+    final positionController = TextEditingController();
     String errorMessage = '';
     bool isSubmitting = false;
-    bool obscureUnitPass = true;
+    bool obscurePass = true;
 
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (dialogContext) {                          // ✅ dialogContext
+      builder: (dialogContext) {
         return StatefulBuilder(
           builder: (dialogContext, setDialogState) {
             return AlertDialog(
@@ -303,9 +357,9 @@ class _ManageUnitsScreenState extends State<ManageUnitsScreen> {
               ),
               title: const Row(
                 children: [
-                  Icon(Icons.business, color: AppTheme.primaryBlue),
+                  Icon(Icons.person_add, color: Colors.green),
                   SizedBox(width: 10),
-                  Text('Add New Unit'),
+                  Text('Add Personnel'),
                 ],
               ),
               content: SizedBox(
@@ -315,54 +369,66 @@ class _ManageUnitsScreenState extends State<ManageUnitsScreen> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-
                       const Text(
-                        'Creates a login account and registers the unit in the system.',
+                        'Creates a mobile login account and enrolls the personnel under your unit.',
                         style: TextStyle(fontSize: 13, color: Colors.grey),
                       ),
                       const SizedBox(height: 20),
-
-                      _dialogLabel('Unit Name *'),
+                      _dialogLabel('Full Name *'),
                       const SizedBox(height: 6),
                       TextField(
                         controller: nameController,
-                        decoration: _inputDecoration(
-                            'e.g. College of Engineering'),
+                        decoration:
+                            _inputDecoration('e.g. Juan dela Cruz'),
                       ),
                       const SizedBox(height: 16),
-
-                      _dialogLabel('Unit Email *'),
+                      _dialogLabel('Position / Role Title *'),
+                      const SizedBox(height: 6),
+                      TextField(
+                        controller: positionController,
+                        decoration: _inputDecoration(
+                            'e.g. Department Secretary'),
+                      ),
+                      const SizedBox(height: 16),
+                      _dialogLabel('Email *'),
                       const SizedBox(height: 6),
                       TextField(
                         controller: emailController,
                         keyboardType: TextInputType.emailAddress,
-                        decoration: _inputDecoration(
-                            'e.g. engineering@school.edu'),
+                        decoration:
+                            _inputDecoration('e.g. juan@school.edu'),
                       ),
                       const SizedBox(height: 16),
-
-                      _dialogLabel('Unit Password *'),
+                      _dialogLabel('Password *'),
                       const SizedBox(height: 6),
                       TextField(
                         controller: passwordController,
-                        obscureText: obscureUnitPass,
+                        obscureText: obscurePass,
                         decoration:
                             _inputDecoration('Min. 6 characters').copyWith(
                           suffixIcon: IconButton(
                             icon: Icon(
-                              obscureUnitPass
+                              obscurePass
                                   ? Icons.visibility_off
                                   : Icons.visibility,
                               size: 18,
                               color: Colors.grey,
                             ),
                             onPressed: () => setDialogState(
-                                () => obscureUnitPass = !obscureUnitPass),
+                                () => obscurePass = !obscurePass),
                           ),
                         ),
                       ),
+                      const SizedBox(height: 16),
+                      _dialogLabel('Phone Number'),
+                      const SizedBox(height: 6),
+                      TextField(
+                        controller: phoneController,
+                        keyboardType: TextInputType.phone,
+                        decoration:
+                            _inputDecoration('e.g. 09171234567'),
+                      ),
                       const SizedBox(height: 12),
-
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
@@ -378,7 +444,7 @@ class _ManageUnitsScreenState extends State<ManageUnitsScreen> {
                             SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                'Role, status, and timestamps are set automatically.',
+                                'Role, unit assignment, status, and timestamps are set automatically.',
                                 style: TextStyle(
                                     fontSize: 12, color: Colors.blue),
                               ),
@@ -386,7 +452,6 @@ class _ManageUnitsScreenState extends State<ManageUnitsScreen> {
                           ],
                         ),
                       ),
-
                       if (errorMessage.isNotEmpty) ...[
                         const SizedBox(height: 12),
                         Container(
@@ -421,7 +486,7 @@ class _ManageUnitsScreenState extends State<ManageUnitsScreen> {
                 TextButton(
                   onPressed: isSubmitting
                       ? null
-                      : () => Navigator.pop(dialogContext), // ✅ dialogContext
+                      : () => Navigator.pop(dialogContext),
                   child: const Text('Cancel'),
                 ),
                 ElevatedButton.icon(
@@ -432,12 +497,16 @@ class _ManageUnitsScreenState extends State<ManageUnitsScreen> {
                           final email = emailController.text.trim();
                           final password =
                               passwordController.text.trim();
+                          final phone = phoneController.text.trim();
+                          final position =
+                              positionController.text.trim();
 
                           if (name.isEmpty ||
                               email.isEmpty ||
-                              password.isEmpty) {
+                              password.isEmpty ||
+                              position.isEmpty) {
                             setDialogState(() => errorMessage =
-                                'All fields are required.');
+                                'Name, position, email and password are required.');
                             return;
                           }
                           if (password.length < 6) {
@@ -451,19 +520,23 @@ class _ManageUnitsScreenState extends State<ManageUnitsScreen> {
                             errorMessage = '';
                           });
 
-                          final result = await _createUnit(
+                          final result = await _createPersonnel(
                             name: name,
                             email: email,
                             password: password,
+                            phone: phone,
+                            position: position,
                           );
 
-                          if (!dialogContext.mounted) return; // ✅ dialogContext
+                          if (!dialogContext.mounted) return;
 
                           if (result['success']) {
-                            Navigator.pop(dialogContext);     // ✅ dialogContext
+                            Navigator.pop(dialogContext);
                             _showSnackbar(
-                                'Unit "$name" created successfully! ✅');
-                            _loadUnits();
+                                '$name enrolled successfully! ✅');
+                            if (_unitDocId != null) {
+                              _loadPersonnel(_unitDocId!);
+                            }
                           } else {
                             setDialogState(() {
                               errorMessage = result['message'] ??
@@ -480,10 +553,10 @@ class _ManageUnitsScreenState extends State<ManageUnitsScreen> {
                               color: Colors.white, strokeWidth: 2),
                         )
                       : const Icon(Icons.check),
-                  label:
-                      Text(isSubmitting ? 'Creating...' : 'Create Unit'),
+                  label: Text(
+                      isSubmitting ? 'Enrolling...' : 'Enrol Personnel'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryBlue,
+                    backgroundColor: Colors.green,
                     foregroundColor: Colors.white,
                   ),
                 ),
@@ -495,24 +568,27 @@ class _ManageUnitsScreenState extends State<ManageUnitsScreen> {
     );
   }
 
-  // ── CREATE UNIT LOGIC ──
-  Future<Map<String, dynamic>> _createUnit({
+  // ── CREATE PERSONNEL LOGIC ──
+  Future<Map<String, dynamic>> _createPersonnel({
     required String name,
     required String email,
     required String password,
+    required String phone,
+    required String position,
   }) async {
     FirebaseApp? secondaryApp;
     try {
-      final currentAdmin = _auth.currentUser;
-      if (currentAdmin == null) {
+      final currentUnit = _auth.currentUser;
+      if (currentUnit == null) {
         return {'success': false, 'message': 'Not logged in.'};
       }
 
       secondaryApp = await Firebase.initializeApp(
-        name: 'secondary_${DateTime.now().millisecondsSinceEpoch}', // ✅ unique name
+        name: 'secondary_${DateTime.now().millisecondsSinceEpoch}',
         options: DefaultFirebaseOptions.currentPlatform,
       );
-      final secondaryAuth = FirebaseAuth.instanceFor(app: secondaryApp);
+      final secondaryAuth =
+          FirebaseAuth.instanceFor(app: secondaryApp);
 
       final credential =
           await secondaryAuth.createUserWithEmailAndPassword(
@@ -526,17 +602,19 @@ class _ManageUnitsScreenState extends State<ManageUnitsScreen> {
       await _firestore.collection('users').doc(newUid).set({
         'name': name,
         'email': email,
-        'role': 'unit',
+        'phone': phone,
+        'position': position,
+        'role': 'personnel',
+        'unitId': currentUnit.uid,
+        'isActive': true,
         'createdAt': FieldValue.serverTimestamp(),
       });
 
-      await _firestore.collection('units').doc(newUid).set({
-        'name': name,
-        'email': email,
-        'isActive': true,
-        'personnelCount': 0,
-        'createdBy': currentAdmin.uid,
-        'createdAt': FieldValue.serverTimestamp(),
+      await _firestore
+          .collection('units')
+          .doc(currentUnit.uid)
+          .update({
+        'personnelCount': FieldValue.increment(1),
       });
 
       return {'success': true};
@@ -564,65 +642,78 @@ class _ManageUnitsScreenState extends State<ManageUnitsScreen> {
   }
 
   // ── TOGGLE ACTIVE STATUS ──
-  Future<void> _toggleUnitStatus(Map<String, dynamic> unit) async {
-    final newStatus = !(unit['isActive'] == true);
+  Future<void> _togglePersonnelStatus(
+      Map<String, dynamic> person) async {
+    final newStatus = !(person['isActive'] == true);
     try {
       await _firestore
-          .collection('units')
-          .doc(unit['id'])
+          .collection('users')
+          .doc(person['id'])
           .update({'isActive': newStatus});
-      if (!mounted) return;                               // ✅ mounted check
+      if (!mounted) return;
       _showSnackbar(
-          'Unit marked as ${newStatus ? 'Active' : 'Inactive'}.');
-      _loadUnits();
+          '${person['name']} marked as ${newStatus ? 'Active' : 'Inactive'}.');
+      if (_unitDocId != null) _loadPersonnel(_unitDocId!);
     } catch (e) {
-      if (!mounted) return;                               // ✅ mounted check
+      if (!mounted) return;
       _showSnackbar('Error updating status: $e', isError: true);
     }
   }
 
-  // ── DELETE UNIT ──
-  void _confirmDelete(Map<String, dynamic> unit) {
+  // ── CONFIRM DELETE ──
+  void _confirmDelete(Map<String, dynamic> person) {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12)),
-        title: const Text('Delete Unit'),
+        title: const Text('Remove Personnel'),
         content: Text(
-          'Are you sure you want to delete "${unit['name']}"?\n\nThis removes the unit from Firestore. Are you sure you want to continue?',
+          'Are you sure you want to remove "${person['name']}"?\n\nThis removes them from Firestore and decrements your unit\'s personnel count. Their login account remains in Firebase Auth.',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(dialogContext), // ✅ dialogContext
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
             onPressed: () async {
-              Navigator.pop(dialogContext);                // ✅ dialogContext
-              await _deleteUnit(unit);
+              Navigator.pop(dialogContext);
+              await _deletePersonnel(person);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
             ),
-            child: const Text('Delete'),
+            child: const Text('Remove'),
           ),
         ],
       ),
     );
   }
 
-  Future<void> _deleteUnit(Map<String, dynamic> unit) async {
+  Future<void> _deletePersonnel(Map<String, dynamic> person) async {
     try {
-      await _firestore.collection('units').doc(unit['id']).delete();
-      await _firestore.collection('users').doc(unit['id']).delete();
-      if (!mounted) return;                               // ✅ mounted check
-      _showSnackbar('Unit deleted successfully.');
-      _loadUnits();
+      await _firestore
+          .collection('users')
+          .doc(person['id'])
+          .delete();
+
+      if (_unitDocId != null) {
+        await _firestore
+            .collection('units')
+            .doc(_unitDocId!)
+            .update({
+          'personnelCount': FieldValue.increment(-1),
+        });
+      }
+
+      if (!mounted) return;
+      _showSnackbar('${person['name']} removed successfully.');
+      if (_unitDocId != null) _loadPersonnel(_unitDocId!);
     } catch (e) {
-      if (!mounted) return;                               // ✅ mounted check
-      _showSnackbar('Error deleting unit: $e', isError: true);
+      if (!mounted) return;
+      _showSnackbar('Error removing personnel: $e', isError: true);
     }
   }
 

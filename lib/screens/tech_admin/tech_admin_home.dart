@@ -5,6 +5,8 @@ import '../shared/create_announcement_screen.dart';
 import '../shared/recents_screen.dart';
 import '../shared/news_feed_screen.dart';
 import 'manage_units_screen.dart';
+import 'venue_management_screen.dart';
+import 'manage_viewer_admins_screen.dart';
 
 class TechAdminHome extends StatefulWidget {
   const TechAdminHome({super.key});
@@ -31,20 +33,22 @@ class _TechAdminHomeState extends State<TechAdminHome> {
     ),
     const NavItem(icon: Icons.business, label: 'Manage Units'),
     const NavItem(icon: Icons.admin_panel_settings, label: 'Manage Viewer Admins'),
+    const NavItem(icon: Icons.pin_drop, label: 'Venue Management'),
     const NavItem(icon: Icons.build_circle, label: 'Tech Assistance Requests'),
     const NavItem(icon: Icons.bug_report, label: 'Bug Reports'),
   ];
 
   final List<Widget> _pages = [
-    const _PlaceholderPage(title: 'Dashboard'),              // 0
-    const NewsFeedScreen(),                                   // 1
-    const _PlaceholderPage(title: 'Calendar'),               // 2
-    const RecentsScreen(),                                    // 3 (under Activities)
-    const CreateAnnouncementScreen(),                         // 4 (under Activities)
-    const ManageUnitsScreen(),                                // 5 ✅
-    const _PlaceholderPage(title: 'Manage Viewer Admins'),   // 6
-    const _PlaceholderPage(title: 'Tech Assistance Requests'), // 7
-    const _PlaceholderPage(title: 'Bug Reports'),            // 8
+    const _PlaceholderPage(title: 'Dashboard'),                 // 1
+    const NewsFeedScreen(),                                     // 2 ✅
+    const _PlaceholderPage(title: 'Calendar'),                  // 3
+    const RecentsScreen(),                                      // 4 ✅
+    const CreateAnnouncementScreen(),                           // 5 ✅
+    const ManageUnitsScreen(),                                  // 6 ✅
+    const ManageViewerAdminsScreen(),                           // 7 ✅
+    const VenueManagementScreen(),                              // 8 ✅
+    const _PlaceholderPage(title: 'Tech Assistance Requests'),  // 9
+    const _PlaceholderPage(title: 'Bug Reports'),               // 10
   ];
 
   @override

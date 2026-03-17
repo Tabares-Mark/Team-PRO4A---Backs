@@ -5,46 +5,48 @@ import 'package:firebase_core/firebase_core.dart';
 import '../../app_theme.dart';
 import '../../firebase_options.dart';
 
-class ManageUnitsScreen extends StatefulWidget {
-  final bool isReadOnly;                                          // ✅ ADDED
-  const ManageUnitsScreen({super.key, this.isReadOnly = false}); // ✅ ADDED
+class ManageViewerAdminsScreen extends StatefulWidget {
+  const ManageViewerAdminsScreen({super.key});
 
   @override
-  State<ManageUnitsScreen> createState() => _ManageUnitsScreenState();
+  State<ManageViewerAdminsScreen> createState() =>
+      _ManageViewerAdminsScreenState();
 }
 
-class _ManageUnitsScreenState extends State<ManageUnitsScreen> {
+class _ManageViewerAdminsScreenState
+    extends State<ManageViewerAdminsScreen> {
   final _firestore = FirebaseFirestore.instance;
   final _auth = FirebaseAuth.instance;
 
-  List<Map<String, dynamic>> _units = [];
+  List<Map<String, dynamic>> _viewerAdmins = [];
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadUnits();
+    _loadViewerAdmins();
   }
 
-  Future<void> _loadUnits() async {
+  Future<void> _loadViewerAdmins() async {
     if (!mounted) return;
     setState(() => _isLoading = true);
     try {
       final snapshot = await _firestore
-          .collection('units')
+          .collection('users')
+          .where('role', isEqualTo: 'viewer_admin')
           .orderBy('createdAt', descending: true)
           .get();
       if (!mounted) return;
       setState(() {
-        _units = snapshot.docs
+        _viewerAdmins = snapshot.docs
             .map((doc) => {'id': doc.id, ...doc.data()})
             .toList();
       });
     } catch (e) {
       if (!mounted) return;
-      _showSnackbar('Error loading units: $e', isError: true);
+      _showSnackbar('Error loading viewer admins: $e', isError: true);
     } finally {
-      if (mounted) setState(() => _isLoading = false);  // ✅ finally block
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -66,7 +68,7 @@ class _ManageUnitsScreenState extends State<ManageUnitsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Manage Units',
+                      'Manage Viewer Admins',
                       style: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
@@ -74,38 +76,36 @@ class _ManageUnitsScreenState extends State<ManageUnitsScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${_units.length} unit${_units.length != 1 ? 's' : ''} registered',
+                      '${_viewerAdmins.length} viewer admin${_viewerAdmins.length != 1 ? 's' : ''} registered',
                       style: const TextStyle(color: Colors.grey),
                     ),
                   ],
                 ),
-                // ✅ hidden when read-only
-                if (!widget.isReadOnly)
-                  ElevatedButton.icon(
-                    onPressed: () => _showAddUnitDialog(),
-                    icon: const Icon(Icons.add),
-                    label: const Text('Add Unit'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primaryBlue,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
+                ElevatedButton.icon(
+                  onPressed: () => _showAddViewerAdminDialog(),
+                  icon: const Icon(Icons.person_add),
+                  label: const Text('Add Viewer Admin'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryBlue,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
                     ),
                   ),
+                ),
               ],
             ),
             const SizedBox(height: 24),
 
-            // ── UNITS LIST ──
+            // ── LIST ──
             Expanded(
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
-                  : _units.isEmpty
+                  : _viewerAdmins.isEmpty
                       ? _buildEmptyState()
-                      : _buildUnitsList(),
+                      : _buildViewerAdminsList(),
             ),
           ],
         ),
@@ -118,35 +118,33 @@ class _ManageUnitsScreenState extends State<ManageUnitsScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.business_outlined,
+          Icon(Icons.admin_panel_settings_outlined,
               size: 64, color: Colors.grey.shade400),
           const SizedBox(height: 16),
           const Text(
-            'No units yet',
+            'No viewer admins yet',
             style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: Colors.grey),
           ),
           const SizedBox(height: 8),
-          Text(
-            widget.isReadOnly
-                ? 'No units have been registered yet.'
-                : 'Click "Add Unit" to create the first unit.',
-            style: const TextStyle(color: Colors.grey),
+          const Text(
+            'Click "Add Viewer Admin" to register the first one.',
+            style: TextStyle(color: Colors.grey),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildUnitsList() {
+  Widget _buildViewerAdminsList() {
     return ListView.separated(
-      itemCount: _units.length,
+      itemCount: _viewerAdmins.length,
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
-        final unit = _units[index];
-        final isActive = unit['isActive'] == true;
+        final admin = _viewerAdmins[index];
+        final isActive = admin['isActive'] == true;
 
         return Card(
           elevation: 1,
@@ -160,7 +158,7 @@ class _ManageUnitsScreenState extends State<ManageUnitsScreen> {
             child: Row(
               children: [
 
-                // Unit Avatar
+                // Avatar
                 Container(
                   width: 44,
                   height: 44,
@@ -169,14 +167,14 @@ class _ManageUnitsScreenState extends State<ManageUnitsScreen> {
                     borderRadius: BorderRadius.circular(22),
                   ),
                   child: const Icon(
-                    Icons.business,
+                    Icons.admin_panel_settings,
                     color: AppTheme.primaryBlue,
                     size: 22,
                   ),
                 ),
                 const SizedBox(width: 16),
 
-                // Unit Info
+                // Info
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -184,7 +182,7 @@ class _ManageUnitsScreenState extends State<ManageUnitsScreen> {
                       Row(
                         children: [
                           Text(
-                            unit['name'] ?? 'Unnamed Unit',
+                            admin['name'] ?? 'Unnamed',
                             style: const TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
@@ -211,69 +209,96 @@ class _ManageUnitsScreenState extends State<ManageUnitsScreen> {
                               ),
                             ),
                           ),
+                          // Read-only badge
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.purple.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.visibility,
+                                    size: 11, color: Colors.purple),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Read-Only',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.purple,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 4),
-                      Text(
-                        unit['email'] ?? '',
-                        style: const TextStyle(
-                            fontSize: 13, color: Colors.grey),
-                      ),
+                      if ((admin['position'] ?? '').isNotEmpty)
+                        Text(
+                          admin['position'],
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: AppTheme.primaryBlue,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                       const SizedBox(height: 2),
                       Text(
-                        '${unit['personnelCount'] ?? 0} personnel',
+                        admin['email'] ?? '',
                         style: const TextStyle(
-                            fontSize: 12, color: Colors.grey),
+                            fontSize: 13, color: Colors.grey),
                       ),
                     ],
                   ),
                 ),
 
-                // ✅ Actions hidden when read-only
-                if (!widget.isReadOnly)
-                  PopupMenuButton<String>(
-                    onSelected: (value) {
-                      if (value == 'toggle') {
-                        _toggleUnitStatus(unit);
-                      } else if (value == 'delete') {
-                        _confirmDelete(unit);
-                      }
-                    },
-                    itemBuilder: (_) => [
-                      PopupMenuItem(
-                        value: 'toggle',
-                        child: Row(
-                          children: [
-                            Icon(
-                              isActive
-                                  ? Icons.block
-                                  : Icons.check_circle_outline,
-                              size: 18,
-                              color: isActive
-                                  ? Colors.orange
-                                  : Colors.green,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(isActive
-                                ? 'Set Inactive'
-                                : 'Set Active'),
-                          ],
-                        ),
+                // Actions
+                PopupMenuButton<String>(
+                  onSelected: (value) {
+                    if (value == 'toggle') {
+                      _toggleViewerAdminStatus(admin);
+                    } else if (value == 'delete') {
+                      _confirmDelete(admin);
+                    }
+                  },
+                  itemBuilder: (_) => [
+                    PopupMenuItem(
+                      value: 'toggle',
+                      child: Row(
+                        children: [
+                          Icon(
+                            isActive
+                                ? Icons.block
+                                : Icons.check_circle_outline,
+                            size: 18,
+                            color: isActive
+                                ? Colors.orange
+                                : Colors.green,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(isActive ? 'Set Inactive' : 'Set Active'),
+                        ],
                       ),
-                      const PopupMenuItem(
-                        value: 'delete',
-                        child: Row(
-                          children: [
-                            Icon(Icons.delete_outline,
-                                size: 18, color: Colors.red),
-                            SizedBox(width: 8),
-                            Text('Delete',
-                                style: TextStyle(color: Colors.red)),
-                          ],
-                        ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          Icon(Icons.delete_outline,
+                              size: 18, color: Colors.red),
+                          SizedBox(width: 8),
+                          Text('Delete',
+                              style: TextStyle(color: Colors.red)),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
@@ -282,19 +307,20 @@ class _ManageUnitsScreenState extends State<ManageUnitsScreen> {
     );
   }
 
-  // ── ADD UNIT DIALOG ──
-  void _showAddUnitDialog() {
+  // ── ADD VIEWER ADMIN DIALOG ──
+  void _showAddViewerAdminDialog() {
     final nameController = TextEditingController();
     final emailController = TextEditingController();
     final passwordController = TextEditingController();
+    final positionController = TextEditingController();
     String errorMessage = '';
     bool isSubmitting = false;
-    bool obscureUnitPass = true;
+    bool obscurePass = true;
 
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (dialogContext) {                          // ✅ dialogContext
+      builder: (dialogContext) {
         return StatefulBuilder(
           builder: (dialogContext, setDialogState) {
             return AlertDialog(
@@ -303,9 +329,10 @@ class _ManageUnitsScreenState extends State<ManageUnitsScreen> {
               ),
               title: const Row(
                 children: [
-                  Icon(Icons.business, color: AppTheme.primaryBlue),
+                  Icon(Icons.admin_panel_settings,
+                      color: AppTheme.primaryBlue),
                   SizedBox(width: 10),
-                  Text('Add New Unit'),
+                  Text('Add Viewer Admin'),
                 ],
               ),
               content: SizedBox(
@@ -317,70 +344,81 @@ class _ManageUnitsScreenState extends State<ManageUnitsScreen> {
                     children: [
 
                       const Text(
-                        'Creates a login account and registers the unit in the system.',
+                        'Creates a read-only account with the same view as Tech Admin but no edit permissions.',
                         style: TextStyle(fontSize: 13, color: Colors.grey),
                       ),
                       const SizedBox(height: 20),
 
-                      _dialogLabel('Unit Name *'),
+                      _dialogLabel('Full Name *'),
                       const SizedBox(height: 6),
                       TextField(
                         controller: nameController,
-                        decoration: _inputDecoration(
-                            'e.g. College of Engineering'),
+                        autofocus: true,
+                        decoration:
+                            _inputDecoration('e.g. Maria Santos'),
                       ),
                       const SizedBox(height: 16),
 
-                      _dialogLabel('Unit Email *'),
+                      _dialogLabel('Position / Role Title *'),
+                      const SizedBox(height: 6),
+                      TextField(
+                        controller: positionController,
+                        decoration:
+                            _inputDecoration('e.g. School Principal'),
+                      ),
+                      const SizedBox(height: 16),
+
+                      _dialogLabel('Email *'),
                       const SizedBox(height: 6),
                       TextField(
                         controller: emailController,
                         keyboardType: TextInputType.emailAddress,
-                        decoration: _inputDecoration(
-                            'e.g. engineering@school.edu'),
+                        decoration:
+                            _inputDecoration('e.g. principal@school.edu'),
                       ),
                       const SizedBox(height: 16),
 
-                      _dialogLabel('Unit Password *'),
+                      _dialogLabel('Password *'),
                       const SizedBox(height: 6),
                       TextField(
                         controller: passwordController,
-                        obscureText: obscureUnitPass,
+                        obscureText: obscurePass,
                         decoration:
                             _inputDecoration('Min. 6 characters').copyWith(
                           suffixIcon: IconButton(
                             icon: Icon(
-                              obscureUnitPass
+                              obscurePass
                                   ? Icons.visibility_off
                                   : Icons.visibility,
                               size: 18,
                               color: Colors.grey,
                             ),
                             onPressed: () => setDialogState(
-                                () => obscureUnitPass = !obscureUnitPass),
+                                () => obscurePass = !obscurePass),
                           ),
                         ),
                       ),
                       const SizedBox(height: 12),
 
+                      // Info note
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: Colors.blue.withOpacity(0.05),
+                          color: Colors.purple.withOpacity(0.05),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                              color: Colors.blue.withOpacity(0.2)),
+                              color: Colors.purple.withOpacity(0.2)),
                         ),
                         child: const Row(
                           children: [
-                            Icon(Icons.info_outline,
-                                size: 14, color: Colors.blue),
+                            Icon(Icons.visibility,
+                                size: 14, color: Colors.purple),
                             SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                'Role, status, and timestamps are set automatically.',
+                                'Viewer Admins have read-only access. They cannot create, edit, or delete anything.',
                                 style: TextStyle(
-                                    fontSize: 12, color: Colors.blue),
+                                    fontSize: 12, color: Colors.purple),
                               ),
                             ),
                           ],
@@ -421,7 +459,7 @@ class _ManageUnitsScreenState extends State<ManageUnitsScreen> {
                 TextButton(
                   onPressed: isSubmitting
                       ? null
-                      : () => Navigator.pop(dialogContext), // ✅ dialogContext
+                      : () => Navigator.pop(dialogContext),
                   child: const Text('Cancel'),
                 ),
                 ElevatedButton.icon(
@@ -432,10 +470,13 @@ class _ManageUnitsScreenState extends State<ManageUnitsScreen> {
                           final email = emailController.text.trim();
                           final password =
                               passwordController.text.trim();
+                          final position =
+                              positionController.text.trim();
 
                           if (name.isEmpty ||
                               email.isEmpty ||
-                              password.isEmpty) {
+                              password.isEmpty ||
+                              position.isEmpty) {
                             setDialogState(() => errorMessage =
                                 'All fields are required.');
                             return;
@@ -451,19 +492,20 @@ class _ManageUnitsScreenState extends State<ManageUnitsScreen> {
                             errorMessage = '';
                           });
 
-                          final result = await _createUnit(
+                          final result = await _createViewerAdmin(
                             name: name,
                             email: email,
                             password: password,
+                            position: position,
                           );
 
-                          if (!dialogContext.mounted) return; // ✅ dialogContext
+                          if (!dialogContext.mounted) return;
 
                           if (result['success']) {
-                            Navigator.pop(dialogContext);     // ✅ dialogContext
+                            Navigator.pop(dialogContext);
                             _showSnackbar(
-                                'Unit "$name" created successfully! ✅');
-                            _loadUnits();
+                                'Viewer Admin "$name" created successfully! ✅');
+                            _loadViewerAdmins();
                           } else {
                             setDialogState(() {
                               errorMessage = result['message'] ??
@@ -480,8 +522,8 @@ class _ManageUnitsScreenState extends State<ManageUnitsScreen> {
                               color: Colors.white, strokeWidth: 2),
                         )
                       : const Icon(Icons.check),
-                  label:
-                      Text(isSubmitting ? 'Creating...' : 'Create Unit'),
+                  label: Text(
+                      isSubmitting ? 'Creating...' : 'Create Viewer Admin'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primaryBlue,
                     foregroundColor: Colors.white,
@@ -495,11 +537,12 @@ class _ManageUnitsScreenState extends State<ManageUnitsScreen> {
     );
   }
 
-  // ── CREATE UNIT LOGIC ──
-  Future<Map<String, dynamic>> _createUnit({
+  // ── CREATE VIEWER ADMIN LOGIC ──
+  Future<Map<String, dynamic>> _createViewerAdmin({
     required String name,
     required String email,
     required String password,
+    required String position,
   }) async {
     FirebaseApp? secondaryApp;
     try {
@@ -509,7 +552,7 @@ class _ManageUnitsScreenState extends State<ManageUnitsScreen> {
       }
 
       secondaryApp = await Firebase.initializeApp(
-        name: 'secondary_${DateTime.now().millisecondsSinceEpoch}', // ✅ unique name
+        name: 'secondary_${DateTime.now().millisecondsSinceEpoch}',
         options: DefaultFirebaseOptions.currentPlatform,
       );
       final secondaryAuth = FirebaseAuth.instanceFor(app: secondaryApp);
@@ -526,15 +569,9 @@ class _ManageUnitsScreenState extends State<ManageUnitsScreen> {
       await _firestore.collection('users').doc(newUid).set({
         'name': name,
         'email': email,
-        'role': 'unit',
-        'createdAt': FieldValue.serverTimestamp(),
-      });
-
-      await _firestore.collection('units').doc(newUid).set({
-        'name': name,
-        'email': email,
+        'position': position,
+        'role': 'viewer_admin',
         'isActive': true,
-        'personnelCount': 0,
         'createdBy': currentAdmin.uid,
         'createdAt': FieldValue.serverTimestamp(),
       });
@@ -564,43 +601,44 @@ class _ManageUnitsScreenState extends State<ManageUnitsScreen> {
   }
 
   // ── TOGGLE ACTIVE STATUS ──
-  Future<void> _toggleUnitStatus(Map<String, dynamic> unit) async {
-    final newStatus = !(unit['isActive'] == true);
+  Future<void> _toggleViewerAdminStatus(
+      Map<String, dynamic> admin) async {
+    final newStatus = !(admin['isActive'] == true);
     try {
       await _firestore
-          .collection('units')
-          .doc(unit['id'])
+          .collection('users')
+          .doc(admin['id'])
           .update({'isActive': newStatus});
-      if (!mounted) return;                               // ✅ mounted check
+      if (!mounted) return;
       _showSnackbar(
-          'Unit marked as ${newStatus ? 'Active' : 'Inactive'}.');
-      _loadUnits();
+          '"${admin['name']}" marked as ${newStatus ? 'Active' : 'Inactive'}.');
+      _loadViewerAdmins();
     } catch (e) {
-      if (!mounted) return;                               // ✅ mounted check
+      if (!mounted) return;
       _showSnackbar('Error updating status: $e', isError: true);
     }
   }
 
-  // ── DELETE UNIT ──
-  void _confirmDelete(Map<String, dynamic> unit) {
+  // ── CONFIRM DELETE ──
+  void _confirmDelete(Map<String, dynamic> admin) {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12)),
-        title: const Text('Delete Unit'),
+        title: const Text('Delete Viewer Admin'),
         content: Text(
-          'Are you sure you want to delete "${unit['name']}"?\n\nThis removes the unit from Firestore. Are you sure you want to continue?',
+          'Are you sure you want to delete "${admin['name']}"?\n\nThis removes them from Firestore. Their Firebase Auth account will remain but they will no longer be able to access the system.',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(dialogContext), // ✅ dialogContext
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
             onPressed: () async {
-              Navigator.pop(dialogContext);                // ✅ dialogContext
-              await _deleteUnit(unit);
+              Navigator.pop(dialogContext);
+              await _deleteViewerAdmin(admin);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
@@ -613,16 +651,18 @@ class _ManageUnitsScreenState extends State<ManageUnitsScreen> {
     );
   }
 
-  Future<void> _deleteUnit(Map<String, dynamic> unit) async {
+  Future<void> _deleteViewerAdmin(Map<String, dynamic> admin) async {
     try {
-      await _firestore.collection('units').doc(unit['id']).delete();
-      await _firestore.collection('users').doc(unit['id']).delete();
-      if (!mounted) return;                               // ✅ mounted check
-      _showSnackbar('Unit deleted successfully.');
-      _loadUnits();
+      await _firestore
+          .collection('users')
+          .doc(admin['id'])
+          .delete();
+      if (!mounted) return;
+      _showSnackbar('"${admin['name']}" deleted successfully.');
+      _loadViewerAdmins();
     } catch (e) {
-      if (!mounted) return;                               // ✅ mounted check
-      _showSnackbar('Error deleting unit: $e', isError: true);
+      if (!mounted) return;
+      _showSnackbar('Error deleting viewer admin: $e', isError: true);
     }
   }
 

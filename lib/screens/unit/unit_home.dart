@@ -4,6 +4,8 @@ import '../../widgets/app_sidebar.dart';
 import '../shared/create_announcement_screen.dart';
 import '../shared/recents_screen.dart';
 import '../shared/news_feed_screen.dart';
+import 'personnel_enrolment_screen.dart';
+import 'account_information_screen.dart';
 
 class UnitHome extends StatefulWidget {
   const UnitHome({super.key});
@@ -44,8 +46,8 @@ class _UnitHomeState extends State<UnitHome> {
   const _PlaceholderPage(title: 'Calendar'),                   
   const RecentsScreen(),                         
   const CreateAnnouncementScreen(),             
-  const _PlaceholderPage(title: 'Account Information'),  
-  const _PlaceholderPage(title: 'Personnel Enrolment'),  
+  const AccountInformationScreen(),  
+  const PersonnelEnrolmentScreen(),  
 ];
 
   @override

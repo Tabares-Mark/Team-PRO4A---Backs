@@ -28,9 +28,14 @@ class AnnouncementService {
         return {'success': false, 'message': 'Not logged in.'};
       }
 
-      final List<String> visibleTo = [
-        ...attendeeUnitIds
-      ];
+      // ✅ fetch creator's name from users collection
+      final userDoc = await _firestore
+          .collection('users')
+          .doc(currentUser.uid)
+          .get();
+      final createdByName = userDoc.data()?['name'] ?? 'Unknown';
+
+      final List<String> visibleTo = [...attendeeUnitIds];
 
       await _firestore.collection('announcements').add({
         'title': title,
@@ -49,6 +54,7 @@ class AnnouncementService {
         'tasks': tasks,
         'visibleTo': visibleTo,
         'createdBy': currentUser.uid,
+        'createdByName': createdByName,       // ✅ ADDED
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       });
@@ -158,9 +164,7 @@ class AnnouncementService {
     required String tasks,
   }) async {
     try {
-      final List<String> visibleTo = [
-        ...attendeeUnitIds
-      ];
+      final List<String> visibleTo = [...attendeeUnitIds];
 
       await _firestore
           .collection('announcements')
@@ -190,52 +194,32 @@ class AnnouncementService {
     }
   }
 
-  // Get announcements where current user is mentioned (News Feed)
+  // Get announcements where current user's unit is in visibleTo (News Feed)
   Future<List<Map<String, dynamic>>> getNewsFeed() async {
     try {
       final currentUser = _auth.currentUser;
-      if (currentUser == null) {
-        print('=== NEWS FEED: No user logged in ===');
-        return [];
-      }
+      if (currentUser == null) return [];
 
-      print('=== NEWS FEED: Looking up unit doc for email: ${currentUser.email} ===');
-
-      // Step 1: Find this unit's Firestore document by email
       final unitQuery = await _firestore
           .collection('units')
           .where('email', isEqualTo: currentUser.email)
           .limit(1)
           .get();
 
-      if (unitQuery.docs.isEmpty) {
-        print('=== NEWS FEED: No unit document found for this user ===');
-        return [];
-      }
+      if (unitQuery.docs.isEmpty) return [];
 
       final unitDocId = unitQuery.docs.first.id;
-      print('=== NEWS FEED: Found unit doc ID: $unitDocId ===');
 
-      // Step 2: Query announcements where visibleTo contains this unit doc ID
       final snapshot = await _firestore
           .collection('announcements')
           .where('visibleTo', arrayContains: unitDocId)
           .orderBy('createdAt', descending: true)
           .get();
 
-      print('=== NEWS FEED: Found ${snapshot.docs.length} docs ===');
-
-      // Debug each doc
-      for (var doc in snapshot.docs) {
-        print('Doc ID: ${doc.id}');
-        print('visibleTo: ${doc.data()['visibleTo']}');
-      }
-
       return snapshot.docs
           .map((doc) => {'id': doc.id, ...doc.data()})
           .toList();
     } catch (e) {
-      print('=== NEWS FEED ERROR: $e ===');
       return [];
     }
   }
