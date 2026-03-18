@@ -583,36 +583,36 @@ class _ManageUnitsScreenState extends State<ManageUnitsScreen> {
 
   // ── DELETE UNIT ──
   void _confirmDelete(Map<String, dynamic> unit) {
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12)),
-        title: const Text('Delete Unit'),
-        content: Text(
-          'Are you sure you want to delete "${unit['name']}"?\n\nThis removes the unit from Firestore. Are you sure you want to continue?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext), // ✅ dialogContext
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(dialogContext);                // ✅ dialogContext
-              await _deleteUnit(unit);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Delete'),
-          ),
-        ],
+  showDialog(
+    context: context,
+    builder: (dialogContext) => AlertDialog(   
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      title: const Text('Delete Unit'),
+      content: Text(
+        'Are you sure you want to delete "${unit['name']}"?\n\n'
+        'This removes the unit from Firestore. To also remove their login account, '
+        'delete them manually in Firebase Console → Authentication.',
       ),
-    );
-  }
-
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(dialogContext),  // changes
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: () async {
+            Navigator.pop(dialogContext);  // changes
+            await _deleteUnit(unit);
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.red,
+            foregroundColor: Colors.white,
+          ),
+          child: const Text('Delete'),
+        ),
+      ],
+    ),
+  );
+}
   Future<void> _deleteUnit(Map<String, dynamic> unit) async {
     try {
       await _firestore.collection('units').doc(unit['id']).delete();
