@@ -1,5 +1,4 @@
 {
-
-  "outputDirectory": "build/web"
-  
+  "outputDirectory": "build/web",
+  "buildCommand": "curl -fsSL https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.19.0-stable.tar.xz | tar xJ -C /opt && /opt/flutter/bin/flutter build web --release"
 }
