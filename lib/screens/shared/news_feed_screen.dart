@@ -286,13 +286,6 @@ class _NewsFeedScreenState extends State<NewsFeedScreen> {
     );
   }
 
-  void _viewAnnouncement(Map<String, dynamic> announcement) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) =>
-            ViewAnnouncementScreen(announcement: announcement),
-      ),
-    );
-  }
+  void _viewAnnouncement(Map<String, dynamic> announcement) =>
+    ViewAnnouncementScreen.show(context, announcement);
 }

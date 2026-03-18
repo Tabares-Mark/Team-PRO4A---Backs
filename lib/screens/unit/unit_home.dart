@@ -7,6 +7,7 @@ import '../shared/news_feed_screen.dart';
 import 'personnel_enrolment_screen.dart';
 import 'account_information_screen.dart';
 import '../shared/calendar_screen.dart';
+import '../shared/bug_report_screen.dart';
 
 class UnitHome extends StatefulWidget {
   const UnitHome({super.key});
@@ -37,6 +38,7 @@ class _UnitHomeState extends State<UnitHome> {
     children: [
       const NavItem(icon: Icons.info_outline, label: 'Account Information'),
       const NavItem(icon: Icons.person_add, label: 'Personnel Enrolment'),
+      const NavItem(icon: Icons.bug_report, label: 'Bug Reports'),
     ],
   ),
 ];
@@ -49,6 +51,7 @@ class _UnitHomeState extends State<UnitHome> {
   const CreateAnnouncementScreen(),             
   const AccountInformationScreen(),  
   const PersonnelEnrolmentScreen(),  
+  const BugReportScreen(),
 ];
 
   @override

@@ -263,15 +263,8 @@ class _RecentsScreenState extends State<RecentsScreen> {
     );
   }
 
-  void _viewAnnouncement(Map<String, dynamic> announcement) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) =>
-            ViewAnnouncementScreen(announcement: announcement),
-      ),
-    );
-  }
+  void _viewAnnouncement(Map<String, dynamic> announcement) =>
+    ViewAnnouncementScreen.show(context, announcement);
 
   void _editAnnouncement(
       Map<String, dynamic> announcement) async {

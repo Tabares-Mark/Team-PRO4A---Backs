@@ -9,6 +9,7 @@ import 'venue_management_screen.dart';
 import 'manage_viewer_admins_screen.dart';
 import 'tech_assistance_requests_screen.dart';
 import '../shared/calendar_screen.dart';
+import 'bug_reports_management_screen.dart';
 
 class TechAdminHome extends StatefulWidget {
   const TechAdminHome({super.key});
@@ -50,7 +51,7 @@ class _TechAdminHomeState extends State<TechAdminHome> {
     const ManageViewerAdminsScreen(),                           // 7 ✅
     const VenueManagementScreen(),                              // 8 ✅
     const TechAssistanceRequestsScreen(),                       // 9 ✅
-    const _PlaceholderPage(title: 'Bug Reports'),               // 10
+    const BugReportsManagementScreen(),                         // 10✅
   ];
 
   @override

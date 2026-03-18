@@ -555,15 +555,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 trailing: OutlinedButton(
                   onPressed: () {
                     Navigator.pop(dialogContext);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            ViewAnnouncementScreen(announcement: a),
-                      ),
-                    );
+                       ViewAnnouncementScreen.show(context, a);
                   },
-                  style: OutlinedButton.styleFrom(
+                    style: OutlinedButton.styleFrom(
                     foregroundColor: AppTheme.primaryBlue,
                     side: const BorderSide(
                         color: AppTheme.primaryBlue),
@@ -722,13 +716,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 ),
                 const SizedBox(width: 8),
                 OutlinedButton(
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) =>
-                          ViewAnnouncementScreen(announcement: a),
-                    ),
-                  ),
+                  onPressed: () => ViewAnnouncementScreen.show(context, a),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppTheme.primaryBlue,
                     side: const BorderSide(

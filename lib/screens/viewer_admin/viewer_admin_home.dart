@@ -6,6 +6,7 @@ import '../tech_admin/venue_management_screen.dart';
 import '../unit/personnel_enrolment_screen.dart';
 import 'viewer_announcements_screen.dart';
 import '../shared/calendar_screen.dart';
+import '../shared/bug_report_screen.dart';
 
 class ViewerAdminHome extends StatefulWidget {
   const ViewerAdminHome({super.key});
@@ -25,6 +26,7 @@ class _ViewerAdminHomeState extends State<ViewerAdminHome> {
     const NavItem(icon: Icons.people, label: 'Personnel'),
     const NavItem(icon: Icons.pin_drop, label: 'Venue Management'),
     const NavItem(icon: Icons.calendar_month, label: 'Calendar'),
+    const NavItem(icon: Icons.bug_report, label: 'Bug Reports'),
   ];
 
   final List<Widget> _pages = [
@@ -34,6 +36,7 @@ class _ViewerAdminHomeState extends State<ViewerAdminHome> {
     const PersonnelEnrolmentScreen(isReadOnly: true),
     const VenueManagementScreen(isReadOnly: true),
     const CalendarScreen(calendarType: CalendarType.viewerAdmin),  
+    const BugReportScreen(),
     ];
 
   @override

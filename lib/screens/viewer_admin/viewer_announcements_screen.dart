@@ -260,15 +260,7 @@ class _ViewerAnnouncementsScreenState
 
                 // View Button
                 OutlinedButton.icon(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            ViewAnnouncementScreen(announcement: a),
-                      ),
-                    );
-                  },
+                  onPressed: () => ViewAnnouncementScreen.show(context, a),
                   icon: const Icon(Icons.visibility, size: 16),
                   label: const Text('View'),
                   style: OutlinedButton.styleFrom(
