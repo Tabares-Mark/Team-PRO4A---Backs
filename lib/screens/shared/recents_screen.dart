@@ -266,18 +266,16 @@ class _RecentsScreenState extends State<RecentsScreen> {
   void _viewAnnouncement(Map<String, dynamic> announcement) =>
     ViewAnnouncementScreen.show(context, announcement);
 
-  void _editAnnouncement(
-      Map<String, dynamic> announcement) async {
-    final updated = await Navigator.push<bool>(
+  void _editAnnouncement(Map<String, dynamic> announcement) async {
+    final result = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
-        builder: (_) =>
-            EditAnnouncementScreen(announcement: announcement),
+        builder: (_) => EditAnnouncementScreen(announcement: announcement),
       ),
     );
-    if (updated == true) _loadAnnouncements();
+    if (result == true) _loadAnnouncements(); // ✅ use 'result'
   }
-
+  
   void _confirmDelete(String announcementId) {
     showDialog(
       context: context,

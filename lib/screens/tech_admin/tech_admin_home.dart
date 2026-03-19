@@ -34,24 +34,30 @@ class _TechAdminHomeState extends State<TechAdminHome> {
         const NavItem(icon: Icons.campaign, label: 'Create Announcements'),
       ],
     ),
-    const NavItem(icon: Icons.business, label: 'Manage Units'),
-    const NavItem(icon: Icons.admin_panel_settings, label: 'Manage Viewer Admins'),
-    const NavItem(icon: Icons.pin_drop, label: 'Venue Management'),
+    NavItem(
+      icon: Icons.admin_panel_settings,
+      label: 'Management',
+      children: [
+        const NavItem(icon: Icons.business, label: 'Manage Units'),
+        const NavItem(icon: Icons.supervised_user_circle, label: 'Manage Viewer Admins'),
+        const NavItem(icon: Icons.pin_drop, label: 'Venue Management'),
+      ],
+    ),
     const NavItem(icon: Icons.build_circle, label: 'Tech Assistance Requests'),
     const NavItem(icon: Icons.bug_report, label: 'Bug Reports'),
   ];
 
   final List<Widget> _pages = [
-    const _PlaceholderPage(title: 'Dashboard'),                 // 1
-    const NewsFeedScreen(),                                     // 2 ✅
-    const CalendarScreen(calendarType: CalendarType.techAdmin), // 3 ✅ 
-    const RecentsScreen(),                                      // 4 ✅
-    const CreateAnnouncementScreen(),                           // 5 ✅
-    const ManageUnitsScreen(),                                  // 6 ✅
-    const ManageViewerAdminsScreen(),                           // 7 ✅
-    const VenueManagementScreen(),                              // 8 ✅
-    const TechAssistanceRequestsScreen(),                       // 9 ✅
-    const BugReportsManagementScreen(),                         // 10✅
+    const _PlaceholderPage(title: 'Dashboard'),                  // 0
+    const NewsFeedScreen(isTechAdmin: true),                     // 1
+    const CalendarScreen(calendarType: CalendarType.techAdmin),  // 2
+    const RecentsScreen(),                                       // 3
+    const CreateAnnouncementScreen(),                            // 4
+    const ManageUnitsScreen(),                                   // 5
+    const ManageViewerAdminsScreen(),                            // 6
+    const VenueManagementScreen(),                               // 7
+    const TechAssistanceRequestsScreen(),                        // 8
+    const BugReportsManagementScreen(),                          // 9
   ];
 
   @override
@@ -67,9 +73,11 @@ class _TechAdminHomeState extends State<TechAdminHome> {
             AppSidebar(
               navItems: _navItems,
               selectedIndex: _selectedIndex,
-              onItemSelected: (index) => setState(() => _selectedIndex = index),
+              onItemSelected: (index) =>
+                  setState(() => _selectedIndex = index),
               isDarkMode: _isDarkMode,
-              onDarkModeToggle: (val) => setState(() => _isDarkMode = val),
+              onDarkModeToggle: (val) =>
+                  setState(() => _isDarkMode = val),
               roleLabel: 'Tech Admin',
               roleColor: AppTheme.primaryBlue,
               roleIcon: Icons.shield,
@@ -94,9 +102,12 @@ class _PlaceholderPage extends StatelessWidget {
         children: [
           const Icon(Icons.construction, size: 64, color: Colors.grey),
           const SizedBox(height: 16),
-          Text(title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+          Text(title,
+              style: const TextStyle(
+                  fontSize: 24, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
-          const Text('Coming soon...', style: TextStyle(color: Colors.grey)),
+          const Text('Coming soon...',
+              style: TextStyle(color: Colors.grey)),
         ],
       ),
     );
